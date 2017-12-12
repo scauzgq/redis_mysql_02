@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="war" name="redis_mysql_02:war">
+    <output-path>$PROJECT_DIR$/target</output-path>
+    <root id="archive" name="redis_mysql_02_maven.war">
+      <element id="artifact" artifact-name="redis_mysql_02:war exploded" />
+    </root>
+  </artifact>
+</component>

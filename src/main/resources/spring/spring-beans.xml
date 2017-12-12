@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+   xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
+	   http://www.springframework.org/schema/aop
+		http://www.springframework.org/schema/aop/spring-aop.xsd">
+
+
+   <context:component-scan base-package="com.scauzgq.redis_mysql_02">
+   		<context:exclude-filter type="annotation" expression="org.springframework.web.bind.annotation.ControllerAdvice"/>
+   		<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+   </context:component-scan>
+
+
+	<!-- 导入资源文件  -->
+    <context:property-placeholder location="classpath:database.properties" ignore-unresolvable="false"/>
+	<!--<bean id="propertyConfigurerForProject1" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">-->
+		<!--<property name="order" value="1" />-->
+		<!--<property name="ignoreUnresolvablePlaceholders" value="true" />-->
+		<!--<property name="location">-->
+			<!--<value>classpath:database.properties</value>-->
+		<!--</property>-->
+	<!--</bean>-->
+
+	<!--<import resource="spring-redis.xml"/>-->
+
+   <!-- 配置C3p0 数据源 -->
+   <!--MapperScannerConfigurer属性不支持使用了 PropertyPlaceholderConfigurer 的属性替换,因为会在 Spring 之前加载 
+   	即${jdbc.driverClass}等不会被读取 ，此时必须把其属性改为 sqlSessionFactoryBeanName -->
+    <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+     <property name="driverClass" value="${jdbc.driverClass}"></property>
+     <property name="jdbcUrl" value="${jdbc.url}"></property>
+     <property name="user" value="${jdbc.user}"></property>
+     <property name="password" value="${jdbc.password}"></property>
+     <property name="initialPoolSize" value="${jdbc.initialPoolSize}"></property>
+     <property name="maxPoolSize" value="${jdbc.maxPoolSize}"></property>
+	 <property name="maxIdleTime" value="${jdbc.maxIdleTime}"></property>
+	</bean>
+    
+    <!--配置自带的数据源  -->
+   <!--  <beans id="dataSource"
+		class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName" value="${jdbc.driverClass}"/>
+		<property name="url" value="${jdbc.jdbcUrl}"/>
+		<property name="username" value="${jdbc.user}"/>
+		<property name="password" value="${jdbc.password}"/>
+	</beans> -->
+  
+  	<!-- mybatis的SqlSession的工厂: SqlSessionFactoryBean : dataSource  typeAliasesPackage-->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource"/>
+		<!-- <property name="typeAliasesPackage" value="com.scauzgq.shop_13.beans"/> 为包类下的类设置默认别名即类名  -->
+		<property name="mapperLocations" value="classpath:mapper/*.xml" />
+	</bean>
+	
+	<!-- mybatis自动扫描加载Sql映射文件 : MapperScannerConfigurer ： sqlSessionFactoryBeanName  basePackage-->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.scauzgq.redis_mysql_02.dao"/>
+		<!-- <property name="sqlSessionFactory" ref="sqlSessionFactory"/> -->
+		<!--why sqlSessionFactoryBeanName  -->
+		<!-- MapperScannerConfigurer runs earlier in the startup process that PropertyPlaceholderConfigurer there were 
+		frequent errors. For that purpose that properties have been deprecated and the new properties 
+		sqlSessionFactoryBeanName and sqlSessionTemplateBeanName are recommended.-->
+		<!--why value instead of ref  -->
+		<!-- beans names are required, not beans references, thus the value attribute is used instead of the usual ref  -->
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory" />
+	</bean>
+	
+	<!-- 事务管理 : DataSourceTransactionManager -->
+	<bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"/>
+	</bean>
+
+	<!-- 使用声明式事务 -->
+	<tx:annotation-driven transaction-manager="txManager" />
+	
+	<!-- 配置 MultipartResolver -->
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="defaultEncoding" value="UTF-8"></property>
+		<property name="maxUploadSize" value="10240000"></property>
+	</bean>
+	<!--
+	&lt;!&ndash; 解析器注册 &ndash;&gt;
+	<beans class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter">
+		<property name="messageConverters">
+			<list>
+				<ref beans="stringHttpMessageConverter"/>
+			</list>
+		</property>
+	</beans>
+	&lt;!&ndash; String类型解析器，允许直接返回String类型的消息 &ndash;&gt;
+	<beans id="stringHttpMessageConverter" class="org.springframework.http.converter.StringHttpMessageConverter"/>
+	-->
+
+
+	<!--<bean id="propertyConfigurerForProject1" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">-->
+		<!--<property name="order" value="2" />-->
+		<!--<property name="ignoreUnresolvablePlaceholders" value="true" />-->
+		<!--<property name="location">-->
+			<!--<value>classpath:redis.properties</value>-->
+		<!--</property>-->
+	<!--</bean>-->
+
+	<!-- jedis 配置 -->
+	<bean id="poolConfig" class="redis.clients.jedis.JedisPoolConfig">
+		<property name="maxIdle" value="${redis.maxIdle}"/>
+		<property name="maxWaitMillis" value="${redis.maxWait}"/>
+		<property name="testOnBorrow" value="${redis.testOnBorrow}"/>
+	</bean>
+	<!-- redis服务器中心 -->
+	<bean id="connectionFactory" class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory">
+		<property name="poolConfig" ref="poolConfig"/>
+		<property name="port" value="${redis.port}"/>
+		<property name="hostName" value="${redis.host}"/>
+		<property name="password" value="${redis.pass}"/>
+		<property name="timeout" value="${redis.timeOut}"></property>
+	</bean>
+	<bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate">
+		<property name="connectionFactory" ref="connectionFactory"/>
+		<property name="keySerializer">
+			<bean class="org.springframework.data.redis.serializer.StringRedisSerializer"/>
+		</property>
+		<property name="valueSerializer">
+			<bean class="org.springframework.data.redis.serializer.JdkSerializationRedisSerializer"/>
+		</property>
+	</bean>
+	<!-- cache配置 -->
+	<bean id="methodCacheInterceptor" class="com.scauzgq.redis_mysql_02.interceptors.MethodCacheInterceptor">
+		<property name="redisUtil" ref="redisUtil"/>
+	</bean>
+	<bean id="redisUtil" class="com.scauzgq.redis_mysql_02.utils.RedisUtil">
+		<property name="redisTemplate" ref="redisTemplate"/>
+	</bean>
+	<!--配置切面拦截方法 -->
+	<aop:config proxy-target-class="true">
+		<!--将com.scauzgq.redis_mysql_02.services包下的所有select开头的方法加入拦截-->
+		<aop:pointcut id="controllerMethodPointcut" expression="
+        execution(* com.scauzgq.redis_mysql_02.services.*.select*(..))"/>
+		<!--<aop:pointcut id="selectMethodPointcut" expression="
+        execution(* com.scauzgq.redis_mysql_02.dao.*.select*(..))"/>-->
+		<aop:advisor advice-ref="methodCacheInterceptor" pointcut-ref="controllerMethodPointcut"/>
+	</aop:config>
+
+	<bean id="methodCacheDelInterceptor" class="com.scauzgq.redis_mysql_02.interceptors.MethodCacheDelInterceptor">
+		<property name="redisUtil" ref="redisUtil"/>
+	</bean>
+	<aop:config proxy-target-class="true">
+		<!--将com.scauzgq.redis_mysql_02.services包下的所有select开头的方法加入拦截-->
+		<aop:pointcut id="controllerMethodDelPointcut" expression="
+        execution(* com.scauzgq.redis_mysql_02.services.*.update*(..))"/>
+		<!--<aop:pointcut id="selectMethodPointcut" expression="
+        execution(* com.scauzgq.redis_mysql_02.dao.*.select*(..))"/>-->
+		<aop:advisor advice-ref="methodCacheDelInterceptor" pointcut-ref="controllerMethodDelPointcut"/>
+	</aop:config>
+
+</beans>

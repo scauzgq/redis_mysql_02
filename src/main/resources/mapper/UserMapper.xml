@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "mybatis-3-mapper.dtd">
+<mapper namespace="com.scauzgq.redis_mysql_02.dao.UserDao">
+
+	<select id="selectUserByUserName" resultMap="getMap" parameterType="java.lang.String"  flushCache="true">
+		SELECT * FROM USER  WHERE USER_NAME = #{XXX};
+	</select>
+
+	<update id="updateUser" parameterType="com.scauzgq.redis_mysql_02.beans.User">
+		UPDATE USER SET PASSWORD=#{password} where USER_NAME = #{userName}
+	</update>
+<!--
+	<insert id="saveUser" parameterType="com.scauzgq.redis_mysql_02.beans.User">
+		INSERT INTO USER(user_name, password) VALUES(#{userName}, #{password})
+	</insert>
+-->
+
+	
+	<resultMap type="com.scauzgq.redis_mysql_02.beans.User" id="getMap">
+	     <result property="userName" column="user_name"/>
+	     <result property="password" column="password"/>
+	</resultMap>
+
+
+
+</mapper>
+
